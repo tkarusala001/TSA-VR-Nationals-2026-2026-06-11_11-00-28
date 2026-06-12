@@ -1,0 +1,26 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.cs]
+indent_size = 4
+
+[*.py]
+indent_size = 4
+
+[*.{shader,hlsl,cginc,compute}]
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+indent_size = 2
+
+# Do not let editors reformat Unity-generated YAML — it is whitespace-sensitive.
+[*.{meta,unity,prefab,asset,mat,anim,controller}]
+trim_trailing_whitespace = false
+insert_final_newline = false

@@ -1,0 +1,265 @@
+#!/usr/bin/env python3
+# -----------------------------------------------------------------------------
+#  gen_common.py
+#  DECRYPTED — A Walk Through the History of Secret Writing  (Blender pipeline)
+#
+#  Shared helpers for the procedural asset generators. Every museum prop is built
+#  in code so the whole art set is reproducible, version-controllable and free of
+#  any third-party/marketplace assets (a hard requirement of the brief). These
+#  helpers wrap the verbose parts of the Blender Python API into a few readable
+#  builders: meshes from raw geometry, boxes/cylinders/rings, extruded text,
+#  Principled-BSDF materials (3.x and 4.x compatible), anchor empties for runtime
+#  wiring, and Quest-friendly FBX/glTF export.
+#
+#  Run inside Blender:  blender --background --python gen_<thing>.py
+#  (Each generator imports this module; see export_all.py to batch everything.)
+# -----------------------------------------------------------------------------
+
+import math
+import os
+
+try:
+    import bpy
+    import bmesh
+    from mathutils import Vector
+except ImportError:  # allows linting / import outside Blender
+    bpy = None
+    bmesh = None
+
+
+# --------------------------------------------------------------- scene / colls
+
+def reset_scene():
+    """Wipe the default scene so a generator starts from a clean slate."""
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+    for block in (bpy.data.meshes, bpy.data.materials, bpy.data.curves):
+        for b in list(block):
+            if b.users == 0:
+                block.remove(b)
+
+
+def ensure_collection(name):
+    """Get or create a top-level collection by name."""
+    if name in bpy.data.collections:
+        return bpy.data.collections[name]
+    col = bpy.data.collections.new(name)
+    bpy.context.scene.collection.children.link(col)
+    return col
+
+
+def link(obj, col):
+    col.objects.link(obj)
+    return obj
+
+
+# ------------------------------------------------------------------ materials
+
+def make_material(name, color=(0.8, 0.8, 0.8, 1.0), metallic=0.0, roughness=0.6,
+                  emission=(0, 0, 0, 1), emission_strength=0.0):
+    """Create a Principled-BSDF material. Handles the Blender 3.x → 4.x input
+    rename (single 'Emission' colour → 'Emission Color' + 'Emission Strength')."""
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf is None:
+        return mat
+
+    def set_in(key, value):
+        if key in bsdf.inputs:
+            bsdf.inputs[key].default_value = value
+            return True
+        return False
+
+    set_in("Base Color", color)
+    set_in("Metallic", metallic)
+    set_in("Roughness", roughness)
+
+    # Emission: try 4.x names first, then 3.x.
+    if not set_in("Emission Color", emission):
+        set_in("Emission", emission)
+    set_in("Emission Strength", emission_strength)
+    return mat
+
+
+def assign(obj, mat):
+    if mat is None:
+        return obj
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+    return obj
+
+
+# --------------------------------------------------------------------- meshes
+
+def add_mesh(name, verts, faces, col, mat=None):
+    """Build an object from raw vertex/face lists."""
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata([Vector(v) for v in verts], [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    link(obj, col)
+    assign(obj, mat)
+    return obj
+
+
+def box(name, size=(1, 1, 1), location=(0, 0, 0), col=None, mat=None, bevel=0.0):
+    """Axis-aligned box centred on `location`. Optional bevel modifier (applied)."""
+    sx, sy, sz = (s * 0.5 for s in size)
+    v = [(-sx, -sy, -sz), (sx, -sy, -sz), (sx, sy, -sz), (-sx, sy, -sz),
+         (-sx, -sy,  sz), (sx, -sy,  sz), (sx, sy,  sz), (-sx, sy,  sz)]
+    f = [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4),
+         (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    obj = add_mesh(name, v, f, col, mat)
+    obj.location = location
+    if bevel > 0:
+        m = obj.modifiers.new("Bevel", 'BEVEL')
+        m.width = bevel
+        m.segments = 2
+        apply_modifiers(obj)
+    return obj
+
+
+def cylinder(name, radius=0.5, depth=1.0, location=(0, 0, 0), col=None, mat=None,
+             segments=48, axis='Z'):
+    """A capped cylinder built procedurally (no ops), oriented along an axis."""
+    verts, faces = [], []
+    half = depth * 0.5
+    for i in range(segments):
+        a = TWO_PI * i / segments
+        x, y = radius * math.cos(a), radius * math.sin(a)
+        if axis == 'Z':
+            verts.append((x, y, -half)); verts.append((x, y, half))
+        elif axis == 'Y':
+            verts.append((x, -half, y)); verts.append((x, half, y))
+        else:  # 'X'
+            verts.append((-half, x, y)); verts.append((half, x, y))
+    for i in range(segments):
+        a0, b0 = 2 * i, 2 * i + 1
+        a1, b1 = 2 * ((i + 1) % segments), 2 * ((i + 1) % segments) + 1
+        faces.append((a0, a1, b1, b0))            # side quad
+    # Caps as fans.
+    bottom = list(range(0, 2 * segments, 2))
+    top = list(range(1, 2 * segments, 2))
+    faces.append(tuple(reversed(bottom)))
+    faces.append(tuple(top))
+    obj = add_mesh(name, verts, faces, col, mat)
+    obj.location = location
+    return obj
+
+
+def ring(name, outer=1.0, inner=0.6, depth=0.2, location=(0, 0, 0), col=None,
+         mat=None, segments=64):
+    """A flat annulus (washer) with thickness — used for dial rings, locking rings."""
+    verts, faces = [], []
+    half = depth * 0.5
+    for i in range(segments):
+        a = TWO_PI * i / segments
+        co, so = math.cos(a), math.sin(a)
+        verts += [(outer * co, outer * so, -half), (outer * co, outer * so, half),
+                  (inner * co, inner * so, -half), (inner * co, inner * so, half)]
+    for i in range(segments):
+        j = (i + 1) % segments
+        o0b, o0t, i0b, i0t = 4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3
+        o1b, o1t, i1b, i1t = 4 * j, 4 * j + 1, 4 * j + 2, 4 * j + 3
+        faces.append((o0b, o1b, o1t, o0t))  # outer wall
+        faces.append((i0t, i1t, i1b, i0b))  # inner wall
+        faces.append((o0t, o1t, i1t, i0t))  # top
+        faces.append((i0b, i1b, o1b, o0b))  # bottom
+    obj = add_mesh(name, verts, faces, col, mat)
+    obj.location = location
+    return obj
+
+
+def text(name, body, size=0.2, location=(0, 0, 0), rotation=(0, 0, 0), col=None,
+         mat=None, extrude=0.01, align_x='CENTER', align_y='CENTER'):
+    """Extruded 3D text (kept as a font object; convert in export if needed)."""
+    curve = bpy.data.curves.new(name, type='FONT')
+    curve.body = body
+    curve.size = size
+    curve.extrude = extrude
+    curve.align_x = align_x
+    curve.align_y = align_y
+    obj = bpy.data.objects.new(name, curve)
+    obj.location = location
+    obj.rotation_euler = rotation
+    link(obj, col)
+    assign(obj, mat)
+    return obj
+
+
+def add_empty(name, location=(0, 0, 0), col=None, size=0.05):
+    """An empty used as a runtime anchor (letter slots, signal-trace waypoints…)."""
+    e = bpy.data.objects.new(name, None)
+    e.empty_display_type = 'PLAIN_AXES'
+    e.empty_display_size = size
+    e.location = location
+    link(e, col)
+    return e
+
+
+# ------------------------------------------------------------------- helpers
+
+TWO_PI = 2.0 * math.pi
+
+
+def select_only(obj):
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+
+
+def apply_modifiers(obj):
+    select_only(obj)
+    for m in list(obj.modifiers):
+        try:
+            bpy.ops.object.modifier_apply(modifier=m.name)
+        except RuntimeError:
+            pass
+
+
+def apply_transforms(obj):
+    select_only(obj)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+
+def join(objects, name):
+    """Join a list of mesh objects into the first one and rename it."""
+    meshes = [o for o in objects if o and o.type == 'MESH']
+    if not meshes:
+        return None
+    select_only(meshes[0])
+    for o in meshes[1:]:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = meshes[0]
+    bpy.ops.object.join()
+    meshes[0].name = name
+    return meshes[0]
+
+
+def letters():
+    return [chr(ord('A') + i) for i in range(26)]
+
+
+# -------------------------------------------------------------------- export
+
+def export_collection(col, out_path, fmt='FBX'):
+    """Export a single collection to FBX or glTF with Quest-friendly settings."""
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in col.all_objects:
+        o.select_set(True)
+    if fmt.upper() == 'FBX':
+        bpy.ops.export_scene.fbx(
+            filepath=out_path, use_selection=True, apply_unit_scale=True,
+            apply_scale_options='FBX_SCALE_ALL', bake_space_transform=True,
+            mesh_smooth_type='FACE', use_mesh_modifiers=True,
+            add_leaf_bones=False, path_mode='COPY', embed_textures=False,
+            axis_forward='-Z', axis_up='Y')             # Unity axis convention
+    else:
+        bpy.ops.export_scene.gltf(
+            filepath=out_path, use_selection=True, export_format='GLB',
+            export_apply=True, export_yup=True)
+    print(f"[gen_common] exported {col.name} -> {out_path}")

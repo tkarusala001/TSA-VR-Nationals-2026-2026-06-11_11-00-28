@@ -1,0 +1,231 @@
+// -----------------------------------------------------------------------------
+//  VaultController.cs
+//  DECRYPTED — A Walk Through the History of Secret Writing  (Exhibit 3)
+//
+//  Owns the payoff when the vault keypad accepts the passphrase: the heavy door
+//  unlocks and swings/slides open, the locking ring spins, status lights flip
+//  from red to green, the room's lighting warms as the secured archive beyond is
+//  revealed, and a low rumble crescendos under it all. When the sequence finishes
+//  it marks the room solved so the GameManager can carry the player onward.
+//
+//  Two door styles are supported with zero code change for the designer:
+//   * Hinged: a pivot transform is rotated open about its local up axis.
+//   * Sliding: the door transform translates along a local offset.
+//  An Animator may also be used instead (trigger "Open"); if present it wins.
+//
+//  All emissive changes use MaterialPropertyBlocks (no material instances).
+// -----------------------------------------------------------------------------
+
+using System.Collections;
+using System.Collections.Generic;
+using Decrypted.Core;
+using Decrypted.Managers;
+using UnityEngine;
+
+namespace Decrypted.Interaction
+{
+    [DisallowMultipleComponent]
+    public class VaultController : MonoBehaviour
+    {
+        public enum DoorStyle { Hinged, Sliding }
+
+        [Header("Door")]
+        [SerializeField] private DoorStyle _style = DoorStyle.Hinged;
+        [Tooltip("The door object that moves. For Hinged, this should pivot at its hinge.")]
+        [SerializeField] private Transform _door;
+        [Tooltip("Optional Animator; if set, its 'Open' trigger is fired and the " +
+                 "transform tween below is skipped.")]
+        [SerializeField] private Animator _doorAnimator;
+        [Tooltip("Hinged: open angle (deg) about local up. Sliding: ignored.")]
+        [SerializeField] private float _openAngle = 105f;
+        [Tooltip("Sliding: local offset to the open position. Hinged: ignored.")]
+        [SerializeField] private Vector3 _openOffset = new Vector3(0f, 0f, 2.4f);
+        [SerializeField] private float _openSeconds = 2.4f;
+        [SerializeField] private AnimationCurve _openEase =
+            AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+        [Header("Locking ring")]
+        [Tooltip("Optional ring that spins as the bolts retract.")]
+        [SerializeField] private Transform _lockingRing;
+        [SerializeField] private float _ringSpinDegrees = 220f;
+        [SerializeField] private float _ringSpinSeconds = 1.0f;
+
+        [Header("Status lights")]
+        [SerializeField] private Renderer[] _statusLights;
+        [SerializeField] private Color _lockedColor = new Color(1f, 0.18f, 0.15f, 1f);
+        [SerializeField] private Color _unlockedColor = new Color(0.3f, 1f, 0.45f, 1f);
+        [SerializeField] private float _statusIntensity = 1.5f;
+
+        [Header("Room lighting reveal")]
+        [Tooltip("Lights that warm up as the archive is revealed.")]
+        [SerializeField] private Light[] _revealLights;
+        [SerializeField] private float _revealLightTarget = 1.2f;
+        [Tooltip("Emissive panels inside the vault that come alive on open.")]
+        [SerializeField] private Renderer[] _archiveEmissive;
+        [SerializeField] private Color _archiveColor = new Color(0.2f, 0.9f, 1f, 1f);
+        [SerializeField] private float _archivePeak = 1.3f;
+
+        [Header("Audio")]
+        [SerializeField] private string _rumbleKey = "sfx_vault_rumble";
+        [SerializeField] private string _successKey = "sfx_success_chime";
+
+        private static readonly int EmissionColorID = Shader.PropertyToID("_EmissionColor");
+        private MaterialPropertyBlock _mpb;
+        private bool _unlocked;
+        private Quaternion _doorClosedRot;
+        private Vector3 _doorClosedPos;
+
+        private void Awake()
+        {
+            _mpb = new MaterialPropertyBlock();
+            if (_door != null)
+            {
+                _doorClosedRot = _door.localRotation;
+                _doorClosedPos = _door.localPosition;
+            }
+            SetStatusLights(_lockedColor);
+            SetArchiveEmissive(0f);
+            SetRevealLights(0f);
+        }
+
+        /// <summary>Called by the keypad on a correct passphrase.</summary>
+        public void Unlock()
+        {
+            if (_unlocked) return;
+            _unlocked = true;
+            StartCoroutine(UnlockSequence());
+        }
+
+        /// <summary>Re-lock everything (used by a full reset / demo loop).</summary>
+        public void Relock()
+        {
+            StopAllCoroutines();
+            _unlocked = false;
+            if (_door != null)
+            {
+                _door.localRotation = _doorClosedRot;
+                _door.localPosition = _doorClosedPos;
+            }
+            SetStatusLights(_lockedColor);
+            SetArchiveEmissive(0f);
+            SetRevealLights(0f);
+        }
+
+        private IEnumerator UnlockSequence()
+        {
+            // 1) Status flips green + rumble begins.
+            SetStatusLights(_unlockedColor);
+            if (!string.IsNullOrEmpty(_rumbleKey) && AudioManager.Instance != null)
+                AudioManager.Instance.Play(_rumbleKey, transform.position, true, 1f);
+            if (!string.IsNullOrEmpty(_successKey) && AudioManager.Instance != null)
+                AudioManager.Instance.PlayUI(_successKey, 0.8f);
+
+            // 2) Spin the locking ring as the bolts retract.
+            if (_lockingRing != null) yield return SpinRing();
+
+            // 3) Open the door (Animator wins if present), warming the room in parallel.
+            if (_doorAnimator != null)
+            {
+                _doorAnimator.SetTrigger("Open");
+                StartCoroutine(RevealRoom(_openSeconds));
+                yield return new WaitForSeconds(_openSeconds);
+            }
+            else if (_door != null)
+            {
+                yield return OpenDoorTween();
+            }
+            else
+            {
+                yield return RevealRoom(_openSeconds);
+            }
+
+            // 4) Done — hand off to the flow manager.
+            GameManager.Instance?.MarkSolved(MuseumState.VaultRoom);
+        }
+
+        private IEnumerator SpinRing()
+        {
+            Quaternion start = _lockingRing.localRotation;
+            Quaternion end = start * Quaternion.AngleAxis(_ringSpinDegrees, Vector3.up);
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / Mathf.Max(0.01f, _ringSpinSeconds);
+                _lockingRing.localRotation = Quaternion.Slerp(start, end, Mathf.SmoothStep(0f, 1f, t));
+                yield return null;
+            }
+            _lockingRing.localRotation = end;
+        }
+
+        private IEnumerator OpenDoorTween()
+        {
+            StartCoroutine(RevealRoom(_openSeconds));
+
+            Quaternion rotStart = _door.localRotation;
+            Quaternion rotEnd = _doorClosedRot * Quaternion.AngleAxis(_openAngle, Vector3.up);
+            Vector3 posStart = _door.localPosition;
+            Vector3 posEnd = _doorClosedPos + _openOffset;
+
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / Mathf.Max(0.01f, _openSeconds);
+                float k = _openEase.Evaluate(Mathf.Clamp01(t));
+                if (_style == DoorStyle.Hinged)
+                    _door.localRotation = Quaternion.Slerp(rotStart, rotEnd, k);
+                else
+                    _door.localPosition = Vector3.Lerp(posStart, posEnd, k);
+                yield return null;
+            }
+            if (_style == DoorStyle.Hinged) _door.localRotation = rotEnd;
+            else _door.localPosition = posEnd;
+        }
+
+        private IEnumerator RevealRoom(float seconds)
+        {
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / Mathf.Max(0.01f, seconds);
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                SetRevealLights(k * _revealLightTarget);
+                SetArchiveEmissive(k * _archivePeak);
+                yield return null;
+            }
+            SetRevealLights(_revealLightTarget);
+            SetArchiveEmissive(_archivePeak);
+        }
+
+        // ------------------------------------------------------------- visuals
+
+        private void SetStatusLights(Color c)
+        {
+            if (_statusLights == null) return;
+            foreach (var r in _statusLights)
+            {
+                if (r == null) continue;
+                r.GetPropertyBlock(_mpb);
+                _mpb.SetColor(EmissionColorID, c * _statusIntensity);
+                r.SetPropertyBlock(_mpb);
+            }
+        }
+
+        private void SetArchiveEmissive(float intensity)
+        {
+            if (_archiveEmissive == null) return;
+            foreach (var r in _archiveEmissive)
+            {
+                if (r == null) continue;
+                r.GetPropertyBlock(_mpb);
+                _mpb.SetColor(EmissionColorID, _archiveColor * Mathf.Max(0f, intensity));
+                r.SetPropertyBlock(_mpb);
+            }
+        }
+
+        private void SetRevealLights(float intensity)
+        {
+            if (_revealLights == null) return;
+            foreach (var l in _revealLights) if (l != null) l.intensity = Mathf.Max(0f, intensity);
+        }
+    }
+}
