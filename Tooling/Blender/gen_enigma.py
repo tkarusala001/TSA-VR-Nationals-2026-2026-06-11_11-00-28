@@ -63,8 +63,7 @@ def build():
         cap = gc.cylinder(f"Rotor_{i}_CapL", radius=0.095, depth=0.012,
                     location=(x - 0.055, rotor_y, rotor_z), col=col, mat=brass,
                     segments=48, axis='Y')
-        gc.apply_transforms(cap)
-        cap.parent = rotor
+        gc.parent_keep_world(cap, rotor)
         # Lettered ring: place a few visible glyphs around the wheel (top arc).
         place_rotor_glyphs(col, rotorglyph, rotor, center=(x, rotor_y, rotor_z),
                            radius=0.092)
@@ -89,12 +88,10 @@ def build():
     lever_pivot = gc.add_empty("Lever_Pivot", location=(0.60, 0.0, 1.10), col=col, size=0.04)
     lever = gc.box("Lever", size=(0.04, 0.04, 0.26), location=(0.60, 0.0, 1.24),
                    col=col, mat=steel)
-    gc.apply_transforms(lever)
-    lever.parent = lever_pivot
+    gc.parent_keep_world(lever, lever_pivot)
     knob = gc.cylinder("Lever_Knob", radius=0.035, depth=0.04, location=(0.60, 0.0, 1.37),
                 col=col, mat=brass, segments=24, axis='Z')
-    gc.apply_transforms(knob)
-    knob.parent = lever
+    gc.parent_keep_world(knob, lever)
 
     # --- signal-trace waypoints (key → plug → R1 → R2 → R3 → reflector → back)
     waypoints = [
@@ -125,7 +122,7 @@ def place_rotor_glyphs(col, mat, rotor, center, radius):
         t = gc.text(f"{rotor.name}_G{ch}", ch, size=0.018, location=(x, cy - 0.052, z),
                     rotation=(math.pi / 2, 0, -ang), col=col, mat=mat,
                     extrude=0.002, align_x='CENTER', align_y='CENTER')
-        t.parent = rotor
+        gc.parent_keep_world(t, rotor)
 
 
 def place_keys_and_lamps(col, key_mat, lamp_mat, base_mat):
@@ -145,8 +142,9 @@ def place_keys_and_lamps(col, key_mat, lamp_mat, base_mat):
             cap = gc.cylinder(f"KeyCap_{ch}", radius=0.035, depth=0.03,
                               location=(x, y, key_z), col=col, mat=key_mat,
                               segments=20, axis='Z')
-            gc.text(f"KeyLabel_{ch}", ch, size=0.022, location=(x, y, key_z + 0.018),
-                    rotation=(0, 0, 0), col=col, mat=base_mat, extrude=0.002).parent = cap
+            label = gc.text(f"KeyLabel_{ch}", ch, size=0.022, location=(x, y, key_z + 0.018),
+                            rotation=(0, 0, 0), col=col, mat=base_mat, extrude=0.002)
+            gc.parent_keep_world(label, cap)
             # Lamp (emissive disc) on the lampboard, slightly behind/above.
             gc.cylinder(f"Lamp_{ch}", radius=0.026, depth=0.012,
                         location=(x, y, lamp_z), col=col, mat=lamp_mat,
