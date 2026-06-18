@@ -55,7 +55,6 @@ def build():
         build_morph_mesh(col, glow, pivot)
 
     print("[gen_reveal_sculpture] built 3 stages (stele/gears/circuit) + morph mesh.")
-    gc.parent_all_to_root(col, "Reveal_Root")
     return col
 
 
