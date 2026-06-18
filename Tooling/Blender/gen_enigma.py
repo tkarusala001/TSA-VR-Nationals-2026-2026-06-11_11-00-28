@@ -60,9 +60,11 @@ def build():
                             location=(x, rotor_y, rotor_z), col=col, mat=steel,
                             segments=48, axis='Y')
         # Knurled brass cap on each end for grip.
-        gc.cylinder(f"Rotor_{i}_CapL", radius=0.095, depth=0.012,
+        cap = gc.cylinder(f"Rotor_{i}_CapL", radius=0.095, depth=0.012,
                     location=(x - 0.055, rotor_y, rotor_z), col=col, mat=brass,
-                    segments=48, axis='Y').parent = rotor
+                    segments=48, axis='Y')
+        gc.apply_transforms(cap)
+        cap.parent = rotor
         # Lettered ring: place a few visible glyphs around the wheel (top arc).
         place_rotor_glyphs(col, rotorglyph, rotor, center=(x, rotor_y, rotor_z),
                            radius=0.092)
@@ -87,9 +89,12 @@ def build():
     lever_pivot = gc.add_empty("Lever_Pivot", location=(0.60, 0.0, 1.10), col=col, size=0.04)
     lever = gc.box("Lever", size=(0.04, 0.04, 0.26), location=(0.60, 0.0, 1.24),
                    col=col, mat=steel)
+    gc.apply_transforms(lever)
     lever.parent = lever_pivot
-    gc.cylinder("Lever_Knob", radius=0.035, depth=0.04, location=(0.60, 0.0, 1.37),
-                col=col, mat=brass, segments=24, axis='Z').parent = lever
+    knob = gc.cylinder("Lever_Knob", radius=0.035, depth=0.04, location=(0.60, 0.0, 1.37),
+                col=col, mat=brass, segments=24, axis='Z')
+    gc.apply_transforms(knob)
+    knob.parent = lever
 
     # --- signal-trace waypoints (key → plug → R1 → R2 → R3 → reflector → back)
     waypoints = [

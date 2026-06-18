@@ -178,7 +178,9 @@ namespace Decrypted.Core
             if (toIdx != fromIdx + 1) return false;
 
             // Solve-gate: leaving a gated room requires its puzzle solved.
-            if (_requireSolveToAdvance && _gatedRooms.Contains(from) && !_solved.Contains(from))
+            // Demo mode bypasses this so the director can drive the full sequence
+            // even when exhibit GameObjects aren't wired up in the scene.
+            if (_requireSolveToAdvance && !_demoMode && _gatedRooms.Contains(from) && !_solved.Contains(from))
                 return false;
 
             return true;

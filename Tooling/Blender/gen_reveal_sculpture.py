@@ -89,6 +89,7 @@ def make_gear(col, name, radius, teeth, thickness, location, mat):
         tooth = gc.box(f"{name}_T{i}", size=(0.03, thickness, 0.03),
                        location=(x, location[1], z), col=col, mat=mat)
         tooth.rotation_euler = (0, a, 0)
+        gc.apply_transforms(tooth)
         parts.append(tooth)
     # Hub hole accent.
     parts.append(gc.cylinder(f"{name}_Hub", radius=radius * 0.18, depth=thickness * 1.1,
