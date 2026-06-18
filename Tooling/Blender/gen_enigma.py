@@ -108,6 +108,7 @@ def build():
 
     print("[gen_enigma] built Enigma: 3 rotors, 26 keys, 26 lamps, plugboard, lever, "
           f"{len(waypoints)} signal waypoints.")
+    gc.parent_all_to_root(col, "Enigma_Root")
     return col
 
 

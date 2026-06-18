@@ -120,6 +120,7 @@ def build():
            location=(-1.05, 0, DOOR_H * 0.5), col=col, mat=cyan)
 
     print("[gen_vault] built vault: door, locking ring, 28-key pad, status lights, archive.")
+    gc.parent_all_to_root(col, "Vault_Root")
     return col
 
 

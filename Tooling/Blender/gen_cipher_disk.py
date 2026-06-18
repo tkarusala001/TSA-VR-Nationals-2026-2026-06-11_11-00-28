@@ -61,6 +61,7 @@ def build():
     gc.parent_keep_world(grip, inner)
 
     print("[gen_cipher_disk] built Caesar disk with 26 outer + 26 inner glyphs/anchors.")
+    gc.parent_all_to_root(col, "CipherDisk_Root")
     return col
 
 
