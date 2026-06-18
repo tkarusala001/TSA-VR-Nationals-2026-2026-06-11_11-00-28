@@ -207,6 +207,7 @@ namespace Decrypted.Interaction
 
         private void EvaluateReadiness(int r0, int r1, int r2)
         {
+            if (_machine == null) return;
             bool wasArmed = _armed;
             _armed = KeyMatches(r0, r1, r2) &&
                      _lastDecoded.Length > 0 &&
@@ -221,6 +222,7 @@ namespace Decrypted.Interaction
 
         private bool KeyMatches(int r0, int r1, int r2)
         {
+            if (_machine == null) return false;
             string key = _machine.SolutionKey;
             if (key.Length < 3) return false;
             return r0 == key[0] - 'A' && r1 == key[1] - 'A' && r2 == key[2] - 'A';
@@ -323,6 +325,7 @@ namespace Decrypted.Interaction
         /// key, then type the ciphertext, then (optionally) pull the lever.</summary>
         public IEnumerator AutoSolve(float perKeyDelay = 0.18f, bool pullLever = true)
         {
+            if (_machine == null) yield break;
             // Dial the rotors to the key.
             string key = _machine.SolutionKey;
             for (int i = 0; i < _rotors.Length; i++)

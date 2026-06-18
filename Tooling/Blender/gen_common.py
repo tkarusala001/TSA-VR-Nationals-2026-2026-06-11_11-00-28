@@ -263,6 +263,10 @@ def apply_modifiers(obj):
 
 
 def apply_transforms(obj):
+    """Bake the object's current world-space location/rotation/scale into the
+    mesh vertices so the object transform resets to identity.  After this call
+    the object sits at its original world position but with a clean transform,
+    which means parent-child relationships in the FBX will be correct."""
     select_only(obj)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 

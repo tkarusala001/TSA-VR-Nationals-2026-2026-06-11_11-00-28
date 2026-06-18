@@ -50,24 +50,38 @@ def build():
            location=(0, (DOOR_W * 0.5 + 0.2), (DOOR_H + 0.4) * 0.5), col=col, mat=dark)
 
     # --- the door (hinged in Unity; modelled closed here) --------------------
+    # Hinge pivot sits at the left edge of the door opening.  The door mesh is
+    # offset so its left edge is at the pivot; Unity's VaultController rotates
+    # this pivot about local-up and the door sweeps open correctly.
+    HINGE_Y = -(DOOR_W * 0.5)
+    door_pivot = gc.add_empty("Vault_DoorPivot", location=(0, HINGE_Y, 0), col=col, size=0.06)
     door = gc.box("Vault_Door", size=(DOOR_T, DOOR_W, DOOR_H),
-                  location=(0, 0, DOOR_H * 0.5), col=col, mat=steel, bevel=0.03)
-    # Circular locking ring on the door face.
+                  location=(0, HINGE_Y + DOOR_W * 0.5, DOOR_H * 0.5), col=col, mat=steel, bevel=0.03)
+    door.parent = door_pivot
+    gc.apply_transforms(door)
+
+    # Circular locking ring — built then transform-baked before parenting to door.
     ring = gc.ring("Vault_LockingRing", outer=0.7, inner=0.5, depth=0.12,
-                   location=(DOOR_T * 0.5 + 0.02, 0, DOOR_H * 0.5), col=col, mat=dark, segments=64)
-    ring.rotation_euler = (0, 1.5708, 0)   # face +X
+                   location=(DOOR_T * 0.5 + 0.02, HINGE_Y + DOOR_W * 0.5, DOOR_H * 0.5),
+                   col=col, mat=dark, segments=64)
+    ring.rotation_euler = (0, 1.5708, 0)
+    gc.apply_transforms(ring)
     ring.parent = door
+
     # Central wheel hub + spokes.
     hub = gc.cylinder("Vault_Wheel", radius=0.16, depth=0.10,
-                      location=(DOOR_T * 0.5 + 0.05, 0, DOOR_H * 0.5), col=col, mat=steel,
-                      segments=32, axis='X')
+                      location=(DOOR_T * 0.5 + 0.05, HINGE_Y + DOOR_W * 0.5, DOOR_H * 0.5),
+                      col=col, mat=steel, segments=32, axis='X')
+    gc.apply_transforms(hub)
     hub.parent = door
     for k in range(4):
         ang = k * 1.5708
         spoke = gc.box(f"Vault_Spoke{k}", size=(0.05, 0.5, 0.05),
-                       location=(DOOR_T * 0.5 + 0.04, 0, DOOR_H * 0.5), col=col, mat=steel)
+                       location=(DOOR_T * 0.5 + 0.04, HINGE_Y + DOOR_W * 0.5, DOOR_H * 0.5),
+                       col=col, mat=steel)
         spoke.rotation_euler = (ang, 0, 0)
-        spoke.parent = ring
+        gc.apply_transforms(spoke)
+        spoke.parent = door  # parent to door not ring so spokes don't spin with lock animation
 
     # --- status lights (beside the door) -------------------------------------
     for i in range(3):
