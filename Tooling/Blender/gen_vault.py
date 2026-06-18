@@ -122,6 +122,7 @@ def build():
     gc.box("Vault_Archive_Glow", size=(0.02, DOOR_W - 0.4, DOOR_H - 0.6),
            location=(-1.05, 0, DOOR_H * 0.5), col=col, mat=cyan)
 
+    gc.reparent_to_root(col, "Vault_Root")
     print("[gen_vault] built vault: door, locking ring, 28-key pad, status lights, archive.")
     return col
 

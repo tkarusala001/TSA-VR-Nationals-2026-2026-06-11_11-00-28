@@ -291,6 +291,18 @@ def letters():
 
 # -------------------------------------------------------------------- export
 
+def reparent_to_root(col, root_name):
+    """Create a root empty and parent every top-level object in the collection to it.
+    This gives Unity a single root GameObject to place/move as a unit."""
+    root = add_empty(root_name, location=(0, 0, 0), col=col, size=0.1)
+    for obj in list(col.all_objects):
+        if obj is root:
+            continue
+        if obj.parent is None:
+            obj.parent = root
+    return root
+
+
 def export_collection(col, out_path, fmt='FBX'):
     """Export a single collection to FBX or glTF with Quest-friendly settings."""
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

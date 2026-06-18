@@ -47,6 +47,7 @@ def build():
         build_room(col, x, name, floor_mat, wall_mat, trim_mat, ceil_mat,
                    entry=not first, exit=not last)
 
+    gc.reparent_to_root(col, "Architecture_Root")
     print(f"[gen_architecture] built {len(ROOM_X)} room shells with doorways and trim.")
     return col
 

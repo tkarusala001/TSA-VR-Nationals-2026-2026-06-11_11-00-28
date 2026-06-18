@@ -60,6 +60,7 @@ def build():
                   location=(0, INNER_R - 0.04, TOP_Z + 0.07), col=col, mat=dark_bronze)
     grip.parent = inner
 
+    gc.reparent_to_root(col, "CipherDisk_Root")
     print("[gen_cipher_disk] built Caesar disk with 26 outer + 26 inner glyphs/anchors.")
     return col
 
