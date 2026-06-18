@@ -53,6 +53,12 @@ audio. See `Documentation/03_Asset_Production_Pipeline.md` for the full rational
    the XR + URP asset assignments.
 5. Run **`DECRYPTED ▸ Build Scene Skeleton`** (added by `SceneBuilder.cs`) to stamp
    out the wired manager rig, camera rig and six room roots.
+5b. Run **`DECRYPTED ▸ Museum ▸ Build Full Museum`** (`Ctrl/Cmd+Shift+M`, added by
+   the editor toolkit in `Scripts/Editor/Museum/`) to construct the full,
+   dense museum — grand architecture, hero centerpieces, display cases, plaques,
+   a portrait gallery, timelines, signage and decor in all six galleries. It is
+   idempotent and reversible (`DECRYPTED ▸ Museum ▸ Clear Generated Dressing`).
+   See `07_Museum_Expansion.md`.
 6. **Generate the art** (optional but recommended): run the Blender pipeline
    (`blender --background --python Tooling/Blender/export_all.py`) and import the
    resulting models from `Assets/_Project/Art/Generated/`.
@@ -96,6 +102,7 @@ Decrypted-VR/
 | `04_Audio_Design.md`            | Synthesis approach, the 12 sounds, mixer + spatialisation |
 | `05_Optimization.md`            | The 72 FPS budget and every technique used to hold it |
 | `06_Storyboard_and_Recording.md`| Minute-by-minute walkthrough + capture workflow |
+| `07_Museum_Expansion.md`        | The procedural museum-dressing toolkit: dense galleries, exhibits, plaques, signage and decor built from one menu command |
 
 ## The puzzle chain (one source of truth)
 
