@@ -242,6 +242,26 @@ def add_empty(name, location=(0, 0, 0), col=None, size=0.05):
     return e
 
 
+def parent_all_to_root(col, root_name):
+    """Give a collection a single named ROOT empty at the origin and parent every
+    current top-level object under it (children of children are left alone — they
+    already have their parent).
+
+    Why: each exhibit is exported as its own FBX, but its parts were a flat set of
+    sibling objects with no single handle. After this call the whole exhibit hangs
+    off one root, so in Unity you can grab/position/rotate the entire prop with one
+    transform, and the prefab has a clean single top node. Uses parent_keep_world so
+    nothing shifts and the relationship survives FBX export. Call this LAST in a
+    generator's build(), just before `return col`."""
+    root = add_empty(root_name, location=(0, 0, 0), col=col, size=0.2)
+    # Snapshot the current top-level objects (those with no parent yet), excluding
+    # the root we just made, so we don't reparent mid-iteration.
+    tops = [o for o in list(col.objects) if o.parent is None and o is not root]
+    for o in tops:
+        parent_keep_world(o, root)
+    return root
+
+
 # ------------------------------------------------------------------- helpers
 
 TWO_PI = 2.0 * math.pi
@@ -265,35 +285,42 @@ def apply_modifiers(obj):
 def apply_transforms(obj):
     """Bake the object's current world-space location/rotation/scale into the
     mesh vertices so the object transform resets to identity.  After this call
-    the object sits at its original world position but with a clean transform.
-
-    NOTE: never follow this with a raw ``child.parent = parent`` — that is the
-    'exploded exhibit' bug (the world position is baked into the mesh AND added
-    again by the parent on export).  Use :func:`parent_keep_world` to parent."""
+    the object sits at its original world position but with a clean transform,
+    which means parent-child relationships in the FBX will be correct."""
     select_only(obj)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 
 def parent_keep_world(child, parent):
-    """Parent ``child`` under ``parent`` while preserving the child's WORLD
-    transform, in a way that survives FBX export to Unity.
+    """Parent `child` to `parent` while keeping `child` exactly where it is —
+    in a way that SURVIVES FBX EXPORT.
 
-    Why this exists — the two naive patterns both break on export:
+    Why this exists (the 'exploded artifacts' bug):
+    The old pattern was `apply_transforms(child); child.parent = parent`. That
+    bakes the child's WORLD position into its mesh vertices and zeroes the object
+    transform, THEN parents it. Blender keeps the child visually in place by
+    storing a hidden 'parent inverse' matrix — but the FBX exporter does NOT write
+    that matrix out. On import, Unity computes the child's position as
+    parent_position + child_local_position, and since the child's vertices are
+    already baked to world AND the object's local position is zero, the result is
+    that the parent's offset gets added on top => the child is flung to roughly
+    double its intended offset. Every baked-then-parented part 'explodes'; the only
+    exhibit that looked right (the cipher disk) was the one that never baked.
 
-    * ``child.parent = parent`` leaves ``matrix_parent_inverse`` at identity, so
-      the child immediately jumps by the parent's transform.
-    * ``apply_transforms(child); child.parent = parent`` bakes the child's world
-      position into its mesh and THEN lets the parent add its offset again on
-      export (FBX has no parent-inverse to cancel it) — the parts 'explode'.
+    The fix: parent first, clear the parent-inverse (the thing FBX drops), then
+    restore the child's true world transform by writing it into matrix_world. Now
+    the child's LOCAL transform genuinely encodes 'where it sits relative to the
+    parent', which is exactly what FBX exports and what Unity reads back. Blender's
+    viewport and the exported FBX now agree.
 
-    This helper parents first, clears the parent-inverse, then restores the
-    child's original world matrix.  The result is a correct *local* transform
-    relative to the parent with an identity parent-inverse, so what Unity imports
-    is exactly that local transform — the child stays exactly where it was."""
-    world = child.matrix_world.copy()
+    Use this INSTEAD OF `apply_transforms(child); child.parent = parent`."""
+    if parent is None:
+        child.parent = None
+        return child
+    world = child.matrix_world.copy()              # remember current world pose
     child.parent = parent
-    child.matrix_parent_inverse.identity()
-    child.matrix_world = world
+    child.matrix_parent_inverse.identity()         # drop the inverse FBX won't export
+    child.matrix_world = world                     # re-encode pose as a real local xform
     return child
 
 
@@ -317,18 +344,6 @@ def letters():
 
 # -------------------------------------------------------------------- export
 
-def reparent_to_root(col, root_name):
-    """Create a root empty and parent every top-level object in the collection to it.
-    This gives Unity a single root GameObject to place/move as a unit."""
-    root = add_empty(root_name, location=(0, 0, 0), col=col, size=0.1)
-    for obj in list(col.all_objects):
-        if obj is root:
-            continue
-        if obj.parent is None:
-            parent_keep_world(obj, root)
-    return root
-
-
 def export_collection(col, out_path, fmt='FBX'):
     """Export a single collection to FBX or glTF with Quest-friendly settings."""
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -336,14 +351,6 @@ def export_collection(col, out_path, fmt='FBX'):
     for o in col.all_objects:
         o.select_set(True)
     if fmt.upper() == 'FBX':
-        # IMPORTANT: bake_space_transform must stay False for Unity.
-        # With it True, Blender bakes the right-handed→left-handed axis conversion
-        # into the vertices; Unity then applies its own handedness flip on import
-        # with nothing left to cancel it, so every mesh comes in REFLECTED. That
-        # reflection is invisible on symmetric geometry (boxes, cylinders, gears)
-        # but mirror-flips anything chiral — i.e. all extruded TEXT reads backwards.
-        # Leaving it False (with the -Z/Y axes below) imports upright AND unmirrored,
-        # and also keeps parented hierarchies (see parent_keep_world) intact.
         bpy.ops.export_scene.fbx(
             filepath=out_path, use_selection=True, apply_unit_scale=True,
             apply_scale_options='FBX_SCALE_ALL', bake_space_transform=False,

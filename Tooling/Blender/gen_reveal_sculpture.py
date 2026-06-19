@@ -54,7 +54,6 @@ def build():
     if bpy is not None:
         build_morph_mesh(col, glow, pivot)
 
-    gc.reparent_to_root(col, "Reveal_Root")
     print("[gen_reveal_sculpture] built 3 stages (stele/gears/circuit) + morph mesh.")
     return col
 

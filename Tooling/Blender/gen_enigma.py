@@ -106,7 +106,6 @@ def build():
     for idx, p in enumerate(waypoints):
         gc.add_empty(f"SignalWaypoint_{idx}", location=p, col=col, size=0.02)
 
-    gc.reparent_to_root(col, "Enigma_Root")
     print("[gen_enigma] built Enigma: 3 rotors, 26 keys, 26 lamps, plugboard, lever, "
           f"{len(waypoints)} signal waypoints.")
     return col

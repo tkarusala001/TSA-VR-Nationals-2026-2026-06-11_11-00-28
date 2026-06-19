@@ -57,12 +57,9 @@ def build():
     door_pivot = gc.add_empty("Vault_DoorPivot", location=(0, HINGE_Y, 0), col=col, size=0.06)
     door = gc.box("Vault_Door", size=(DOOR_T, DOOR_W, DOOR_H),
                   location=(0, HINGE_Y + DOOR_W * 0.5, DOOR_H * 0.5), col=col, mat=steel, bevel=0.03)
-    # Keep the door's world placement while making the hinge empty its parent, so
-    # Unity's VaultController can swing it about the pivot. (parent_keep_world
-    # gives a correct local transform that survives FBX export — no 'explosion'.)
     gc.parent_keep_world(door, door_pivot)
 
-    # Circular locking ring — parented to the door, world placement preserved.
+    # Circular locking ring — built then transform-baked before parenting to door.
     ring = gc.ring("Vault_LockingRing", outer=0.7, inner=0.5, depth=0.12,
                    location=(DOOR_T * 0.5 + 0.02, HINGE_Y + DOOR_W * 0.5, DOOR_H * 0.5),
                    col=col, mat=dark, segments=64)
@@ -122,7 +119,6 @@ def build():
     gc.box("Vault_Archive_Glow", size=(0.02, DOOR_W - 0.4, DOOR_H - 0.6),
            location=(-1.05, 0, DOOR_H * 0.5), col=col, mat=cyan)
 
-    gc.reparent_to_root(col, "Vault_Root")
     print("[gen_vault] built vault: door, locking ring, 28-key pad, status lights, archive.")
     return col
 
