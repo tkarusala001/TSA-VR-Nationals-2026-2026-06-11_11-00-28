@@ -265,10 +265,36 @@ def apply_modifiers(obj):
 def apply_transforms(obj):
     """Bake the object's current world-space location/rotation/scale into the
     mesh vertices so the object transform resets to identity.  After this call
-    the object sits at its original world position but with a clean transform,
-    which means parent-child relationships in the FBX will be correct."""
+    the object sits at its original world position but with a clean transform.
+
+    NOTE: never follow this with a raw ``child.parent = parent`` — that is the
+    'exploded exhibit' bug (the world position is baked into the mesh AND added
+    again by the parent on export).  Use :func:`parent_keep_world` to parent."""
     select_only(obj)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+
+def parent_keep_world(child, parent):
+    """Parent ``child`` under ``parent`` while preserving the child's WORLD
+    transform, in a way that survives FBX export to Unity.
+
+    Why this exists — the two naive patterns both break on export:
+
+    * ``child.parent = parent`` leaves ``matrix_parent_inverse`` at identity, so
+      the child immediately jumps by the parent's transform.
+    * ``apply_transforms(child); child.parent = parent`` bakes the child's world
+      position into its mesh and THEN lets the parent add its offset again on
+      export (FBX has no parent-inverse to cancel it) — the parts 'explode'.
+
+    This helper parents first, clears the parent-inverse, then restores the
+    child's original world matrix.  The result is a correct *local* transform
+    relative to the parent with an identity parent-inverse, so what Unity imports
+    is exactly that local transform — the child stays exactly where it was."""
+    world = child.matrix_world.copy()
+    child.parent = parent
+    child.matrix_parent_inverse.identity()
+    child.matrix_world = world
+    return child
 
 
 def join(objects, name):
@@ -299,7 +325,7 @@ def reparent_to_root(col, root_name):
         if obj is root:
             continue
         if obj.parent is None:
-            obj.parent = root
+            parent_keep_world(obj, root)
     return root
 
 
@@ -310,9 +336,17 @@ def export_collection(col, out_path, fmt='FBX'):
     for o in col.all_objects:
         o.select_set(True)
     if fmt.upper() == 'FBX':
+        # IMPORTANT: bake_space_transform must stay False for Unity.
+        # With it True, Blender bakes the right-handed→left-handed axis conversion
+        # into the vertices; Unity then applies its own handedness flip on import
+        # with nothing left to cancel it, so every mesh comes in REFLECTED. That
+        # reflection is invisible on symmetric geometry (boxes, cylinders, gears)
+        # but mirror-flips anything chiral — i.e. all extruded TEXT reads backwards.
+        # Leaving it False (with the -Z/Y axes below) imports upright AND unmirrored,
+        # and also keeps parented hierarchies (see parent_keep_world) intact.
         bpy.ops.export_scene.fbx(
             filepath=out_path, use_selection=True, apply_unit_scale=True,
-            apply_scale_options='FBX_SCALE_ALL', bake_space_transform=True,
+            apply_scale_options='FBX_SCALE_ALL', bake_space_transform=False,
             mesh_smooth_type='FACE', use_mesh_modifiers=True, use_tspace=True,
             add_leaf_bones=False, path_mode='COPY', embed_textures=False,
             axis_forward='-Z', axis_up='Y')             # Unity axis convention

@@ -276,7 +276,18 @@ namespace Decrypted.EditorTools
             rt.localScale = Vector3.one;
             rt.sizeDelta = boxSize;
             rt.localPosition = pos;
-            rt.localEulerAngles = euler;
+
+            // A 3D TextMeshPro's readable face looks down its LOCAL -Z, so a label
+            // authored "facing +Z" actually turns its mirror-reversed BACK to the
+            // viewer. For upright signage (banners, wall signs, plaques, case
+            // labels) we add a 180° yaw so the front faces the reader. Labels that
+            // lie flat and are read from above (euler.x ≈ ±90°, e.g. the floor
+            // medallion, desk signs, the Caesar-disk ring) are already correct and
+            // must NOT be flipped. If a future test ever shows the opposite, change
+            // the +180f below to +0f — this is the one place all C# text is built.
+            float faceYaw = euler.y;
+            if (Mathf.Abs(Mathf.DeltaAngle(0f, euler.x)) < 45f) faceYaw += 180f;
+            rt.localEulerAngles = new Vector3(euler.x, faceYaw, euler.z);
             return tmp;
         }
 

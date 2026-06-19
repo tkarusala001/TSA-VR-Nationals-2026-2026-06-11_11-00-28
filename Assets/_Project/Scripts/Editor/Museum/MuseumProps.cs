@@ -518,6 +518,26 @@ namespace Decrypted.EditorTools
             return root;
         }
 
+        /// <summary>A hanging chandelier (chain, gilt tiers, candle arms, glowing flames).</summary>
+        public static GameObject Chandelier(Transform parent, Vector3 topPos, string glowKey)
+        {
+            var root = MuseumKit.Group(parent, "Chandelier", topPos);
+            MuseumKit.Box(root.transform, "Chain", new Vector3(0, -0.35f, 0), new Vector3(0.04f, 0.7f, 0.04f), "brassDark");
+            MuseumKit.Cyl(root.transform, "Crown", new Vector3(0, -0.7f, 0), 0.5f, 0.06f, "gold");
+            MuseumKit.Cyl(root.transform, "Tier", new Vector3(0, -0.95f, 0), 0.34f, 0.05f, "gold");
+            const int arms = 8;
+            for (int i = 0; i < arms; i++)
+            {
+                float a = i / (float)arms * 360f, ar = a * Mathf.Deg2Rad;
+                float cx = Mathf.Cos(ar), cz = Mathf.Sin(ar);
+                MuseumKit.Box(root.transform, "Arm" + i, new Vector3(cx * 0.42f, -0.72f, cz * 0.42f), new Vector3(0.04f, 0.04f, 0.34f), "gold", new Vector3(0, -a, 0));
+                MuseumKit.Cyl(root.transform, "Candle" + i, new Vector3(cx * 0.62f, -0.62f, cz * 0.62f), 0.03f, 0.16f, "whiteMatte");
+                MuseumKit.Sphere(root.transform, "Flame" + i, new Vector3(cx * 0.62f, -0.5f, cz * 0.62f), 0.1f, glowKey);
+            }
+            MuseumKit.Sphere(root.transform, "CoreGlow", new Vector3(0, -0.85f, 0), 0.34f, glowKey);
+            return root;
+        }
+
         public static GameObject Banner(Transform parent, Vector3 topPos, Vector2 size, string text, string key = "velvetRed")
         {
             var root = MuseumKit.Group(parent, "Banner_" + Slug(text), topPos);

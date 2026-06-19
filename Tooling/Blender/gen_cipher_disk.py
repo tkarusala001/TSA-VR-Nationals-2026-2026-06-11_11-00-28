@@ -58,7 +58,7 @@ def build():
     # A small grip notch hint on the inner disk so players know to twist it.
     grip = gc.box("InnerDisk_Grip", size=(0.04, 0.10, 0.04),
                   location=(0, INNER_R - 0.04, TOP_Z + 0.07), col=col, mat=dark_bronze)
-    grip.parent = inner
+    gc.parent_keep_world(grip, inner)
 
     gc.reparent_to_root(col, "CipherDisk_Root")
     print("[gen_cipher_disk] built Caesar disk with 26 outer + 26 inner glyphs/anchors.")
@@ -75,8 +75,8 @@ def place_letters(col, glyph_mat, radius, z, prefix, anchor_prefix, parent):
                     extrude=0.006, align_x='CENTER', align_y='CENTER')
         a = gc.add_empty(f"{anchor_prefix}_{ch}", location=(x, y, z), col=col, size=0.02)
         if parent is not None:
-            t.parent = parent
-            a.parent = parent
+            gc.parent_keep_world(t, parent)
+            gc.parent_keep_world(a, parent)
 
 
 if __name__ == "__main__":

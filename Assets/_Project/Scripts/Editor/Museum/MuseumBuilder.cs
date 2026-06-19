@@ -52,13 +52,13 @@ namespace Decrypted.EditorTools
         {
             switch (key)
             {
-                case "entrance": return new Style { Floor = "marbleDark", Wall = "marbleDark", Ceil = "ceiling", Trim = "brass", Accent = "brass", Sconce = "glowGold", Runner = "carpetRed", Key = new Color(1f, 0.86f, 0.6f), Intensity = 14f, W = 15f, D = 12f, H = 6f };
-                case "atrium": return new Style { Floor = "marbleLight", Wall = "plasterWarm", Ceil = "marbleLight", Trim = "brassDark", Accent = "brass", Sconce = "glowWarm", Runner = "carpetRed", Key = new Color(1f, 0.92f, 0.78f), Intensity = 11f, W = 17f, D = 14f, H = 7f };
-                case "ancient": return new Style { Floor = "sandstone", Wall = "plasterWarm", Ceil = "stone", Trim = "bronze", Accent = "bronze", Sconce = "glowAmber", Runner = "carpetRed", Key = new Color(1f, 0.74f, 0.42f), Intensity = 13f, W = 16f, D = 13f, H = 6f };
-                case "wwii": return new Style { Floor = "concrete", Wall = "plasterCool", Ceil = "ceiling", Trim = "steel", Accent = "steel", Sconce = "glowWarm", Runner = "carpetBlue", Key = new Color(0.95f, 0.95f, 1f), Intensity = 12f, W = 16f, D = 13f, H = 6f };
-                case "vault": return new Style { Floor = "marbleDark", Wall = "plasterCool", Ceil = "ceiling", Trim = "chrome", Accent = "steel", Sconce = "glowCool", Runner = "carpetBlue", Key = new Color(0.7f, 0.9f, 1f), Intensity = 12f, W = 16f, D = 13f, H = 6f };
-                case "reveal": return new Style { Floor = "marbleDark", Wall = "marbleDark", Ceil = "ceiling", Trim = "gold", Accent = "gold", Sconce = "glowGold", Runner = "carpetRed", Key = new Color(1f, 0.88f, 0.7f), Intensity = 16f, W = 15f, D = 13f, H = 7f };
-                default: return new Style { Floor = "concrete", Wall = "plasterNeutral", Ceil = "ceiling", Trim = "brass", Accent = "brass", Sconce = "glowWarm", Runner = "carpetRed", Key = Color.white, Intensity = 12f, W = 16f, D = 13f, H = 6f };
+                case "entrance": return new Style { Floor = "marbleDark", Wall = "marbleDark", Ceil = "ceiling", Trim = "brass", Accent = "brass", Sconce = "glowGold", Runner = "carpetRed", Key = new Color(1f, 0.86f, 0.6f), Intensity = 14f, W = 15f, D = 12f, H = 7.5f };
+                case "atrium": return new Style { Floor = "marbleLight", Wall = "plasterWarm", Ceil = "marbleLight", Trim = "brassDark", Accent = "brass", Sconce = "glowWarm", Runner = "carpetRed", Key = new Color(1f, 0.92f, 0.78f), Intensity = 11f, W = 17f, D = 14f, H = 8.5f };
+                case "ancient": return new Style { Floor = "sandstone", Wall = "plasterWarm", Ceil = "stone", Trim = "bronze", Accent = "bronze", Sconce = "glowAmber", Runner = "carpetRed", Key = new Color(1f, 0.74f, 0.42f), Intensity = 13f, W = 16f, D = 13f, H = 7.5f };
+                case "wwii": return new Style { Floor = "concrete", Wall = "plasterCool", Ceil = "ceiling", Trim = "steel", Accent = "steel", Sconce = "glowWarm", Runner = "carpetBlue", Key = new Color(0.95f, 0.95f, 1f), Intensity = 12f, W = 16f, D = 13f, H = 7.5f };
+                case "vault": return new Style { Floor = "marbleDark", Wall = "plasterCool", Ceil = "ceiling", Trim = "chrome", Accent = "steel", Sconce = "glowCool", Runner = "carpetBlue", Key = new Color(0.7f, 0.9f, 1f), Intensity = 12f, W = 16f, D = 13f, H = 7.5f };
+                case "reveal": return new Style { Floor = "marbleDark", Wall = "marbleDark", Ceil = "ceiling", Trim = "gold", Accent = "gold", Sconce = "glowGold", Runner = "carpetRed", Key = new Color(1f, 0.88f, 0.7f), Intensity = 16f, W = 15f, D = 13f, H = 8f };
+                default: return new Style { Floor = "concrete", Wall = "plasterNeutral", Ceil = "ceiling", Trim = "brass", Accent = "brass", Sconce = "glowWarm", Runner = "carpetRed", Key = Color.white, Intensity = 12f, W = 16f, D = 13f, H = 7.5f };
             }
         }
 
@@ -156,14 +156,12 @@ namespace Decrypted.EditorTools
             MuseumKit.Box(shell.transform, "Runner", new Vector3(0, 0.012f, 0), new Vector3(2.4f, 0.01f, D - 0.4f), st.Runner);
             MuseumKit.Box(shell.transform, "BorderN", new Vector3(0, 0.012f, hd - 0.5f), new Vector3(W - 1f, 0.01f, 0.12f), st.Trim);
             MuseumKit.Box(shell.transform, "BorderS", new Vector3(0, 0.012f, -hd + 0.5f), new Vector3(W - 1f, 0.01f, 0.12f), st.Trim);
+            FloorInlay(shell.transform, new Vector3(0, 0.014f, HeroZ), st);
 
-            // Ceiling slab + coffer grid + skylight
+            // Grand ceiling: slab + coffered field + glowing central laylight.
             MuseumKit.Box(shell.transform, "Ceiling", new Vector3(0, H + 0.1f, 0), new Vector3(W, 0.2f, D), st.Ceil);
-            for (int x = -2; x <= 2; x++)
-                MuseumKit.Box(shell.transform, "BeamX" + x, new Vector3(x * (W / 5f), H - 0.05f, 0), new Vector3(0.18f, 0.2f, D - 1f), st.Trim);
-            for (int z = -1; z <= 1; z++)
-                MuseumKit.Box(shell.transform, "BeamZ" + z, new Vector3(0, H - 0.05f, z * (D / 3f)), new Vector3(W - 1f, 0.2f, 0.18f), st.Trim);
-            MuseumKit.Box(shell.transform, "Skylight", new Vector3(0, H - 0.02f, 0), new Vector3(3.4f, 0.05f, 3.4f), "glowWarm");
+            CofferedCeiling(shell.transform, W, D, H, st);
+            CeilingLaylight(shell.transform, W, D, H, st);
 
             // Walls — back/front solid, side walls with framed doorways
             MuseumKit.Box(shell.transform, "WallBack", new Vector3(0, H * 0.5f, hd), new Vector3(W, H, t), st.Wall, default, true);
@@ -173,33 +171,53 @@ namespace Decrypted.EditorTools
             SideWall(shell.transform, "WallLeft", -hw, D, H, t, st, entry);
             SideWall(shell.transform, "WallRight", hw, D, H, t, st, exit);
 
-            // Baseboard + cornice ribbons
+            // Baseboard + multi-tier crown cornice on every wall.
             foreach (float z in new[] { hd - t * 0.5f, -hd + t * 0.5f })
             {
                 MuseumKit.Box(shell.transform, "Base", new Vector3(0, 0.12f, z), new Vector3(W, 0.24f, 0.06f), st.Trim);
-                MuseumKit.Box(shell.transform, "Cornice", new Vector3(0, H - 0.18f, z), new Vector3(W, 0.2f, 0.12f), st.Trim);
+                CrownCornice(shell.transform, true, z, W, H, st);
             }
+            foreach (float xw in new[] { hw - t * 0.5f, -hw + t * 0.5f })
+                CrownCornice(shell.transform, false, xw, D, H, st);
 
-            // Colonnade along the long walls (set in from the wall)
+            // Wainscot panelling on the long walls + clerestory daylight windows.
+            WallDressing(shell.transform, W, D, H, st);
+            Clerestory(shell.transform, W, D, H, st);
+
+            // Colonnade + classical entablature (architrave / triglyph frieze / dentils).
             int cols = 4;
             for (int i = 0; i < cols; i++)
             {
                 float cx = Mathf.Lerp(-hw + 2f, hw - 2f, i / (float)(cols - 1));
-                MuseumProps.Column(shell.transform, new Vector3(cx, 0, hd - 0.9f), H - 0.3f, 0.3f, "marbleLight");
-                MuseumProps.Column(shell.transform, new Vector3(cx, 0, -hd + 0.9f), H - 0.3f, 0.3f, "marbleLight");
+                MuseumProps.Column(shell.transform, new Vector3(cx, 0, hd - 0.9f), H - 0.5f, 0.3f, "marbleLight");
+                MuseumProps.Column(shell.transform, new Vector3(cx, 0, -hd + 0.9f), H - 0.5f, 0.3f, "marbleLight");
             }
+            Entablature(shell.transform, new Vector3(0, H - 0.55f, hd - 0.9f), W, 180f, st);
+            Entablature(shell.transform, new Vector3(0, H - 0.55f, -hd + 0.9f), W, 0f, st);
 
-            // Archways framing the doorways
+            // Engaged pilasters flanking the long walls near the corners.
+            foreach (float pz in new[] { hd - 0.18f, -hd + 0.18f })
+                foreach (float px in new[] { -hw + 0.8f, hw - 0.8f })
+                {
+                    MuseumKit.Box(shell.transform, "Pilaster", new Vector3(px, (H - 0.5f) * 0.5f, pz), new Vector3(0.5f, H - 0.5f, 0.14f), "marbleLight");
+                    MuseumKit.Box(shell.transform, "PilCap", new Vector3(px, H - 0.6f, pz), new Vector3(0.64f, 0.16f, 0.22f), st.Trim);
+                }
+
+            // Archways framing the doorways.
             if (entry) MuseumProps.Archway(shell.transform, new Vector3(-hw + 0.25f, 0, 0), 90f, 2.6f, 3.0f, "marbleLight");
             if (exit) MuseumProps.Archway(shell.transform, new Vector3(hw - 0.25f, 0, 0), 90f, 2.6f, 3.0f, "marbleLight");
 
-            // Wall sconces (emissive — free light) on the long walls
+            // Wall sconces (emissive — free light) on the long walls.
             for (int i = 0; i < 4; i++)
             {
                 float sx = Mathf.Lerp(-hw + 1.6f, hw - 1.6f, i / 3f);
-                Sconce(shell.transform, new Vector3(sx, H * 0.62f, hd - 0.16f), 180f, st.Sconce);
-                Sconce(shell.transform, new Vector3(sx, H * 0.62f, -hd + 0.16f), 0f, st.Sconce);
+                Sconce(shell.transform, new Vector3(sx, H * 0.42f, hd - 0.16f), 180f, st.Sconce);
+                Sconce(shell.transform, new Vector3(sx, H * 0.42f, -hd + 0.16f), 0f, st.Sconce);
             }
+
+            // Chandeliers down the central axis (grand silhouette + warm glow).
+            MuseumProps.Chandelier(shell.transform, new Vector3(0, H - 0.1f, -hd + 3.4f), st.Sconce);
+            MuseumProps.Chandelier(shell.transform, new Vector3(0, H - 0.1f, hd - 3.4f), st.Sconce);
         }
 
         private static void SideWall(Transform p, string name, float x, float D, float H, float t, Style st, bool door)
@@ -225,6 +243,148 @@ namespace Decrypted.EditorTools
             s.transform.localEulerAngles = new Vector3(0, yaw, 0);
             MuseumKit.Box(s.transform, "Bracket", new Vector3(0, -0.15f, 0.05f), new Vector3(0.08f, 0.4f, 0.1f), "brassDark");
             MuseumKit.Box(s.transform, "Lamp", new Vector3(0, 0.05f, 0.12f), new Vector3(0.18f, 0.28f, 0.1f), glow);
+        }
+
+        // ----------------------------------------------- GRAND ARCHITECTURE
+        // A coffered ceiling field — a grid of recessed panels with rosette bosses,
+        // left open over the centre where the laylight sits.
+        private static void CofferedCeiling(Transform p, float W, float D, float H, Style st)
+        {
+            var c = MuseumKit.Group(p, "Coffers", new Vector3(0, H, 0));
+            int nx = 5, nz = 4;
+            float fieldW = W - 0.6f, fieldD = D - 0.6f;
+            float cw = fieldW / nx, cd = fieldD / nz;
+            float lw = Mathf.Min(W * 0.34f, 5f), ld = Mathf.Min(D * 0.34f, 4f);
+            for (int i = 0; i <= nx; i++)
+                MuseumKit.Box(c.transform, "RibX" + i, new Vector3(-fieldW * 0.5f + i * cw, -0.05f, 0), new Vector3(0.14f, 0.14f, fieldD), st.Trim);
+            for (int j = 0; j <= nz; j++)
+                MuseumKit.Box(c.transform, "RibZ" + j, new Vector3(0, -0.05f, -fieldD * 0.5f + j * cd), new Vector3(fieldW, 0.14f, 0.14f), st.Trim);
+            for (int i = 0; i < nx; i++)
+                for (int j = 0; j < nz; j++)
+                {
+                    float px = -fieldW * 0.5f + (i + 0.5f) * cw;
+                    float pz = -fieldD * 0.5f + (j + 0.5f) * cd;
+                    if (Mathf.Abs(px) < lw * 0.5f + 0.4f && Mathf.Abs(pz) < ld * 0.5f + 0.4f) continue; // leave the laylight opening
+                    MuseumKit.Box(c.transform, "Coffer", new Vector3(px, 0.03f, pz), new Vector3(cw - 0.24f, 0.05f, cd - 0.24f), st.Ceil);
+                    MuseumKit.Cyl(c.transform, "Rosette", new Vector3(px, -0.05f, pz), 0.1f, 0.05f, st.Accent);
+                }
+        }
+
+        // A glowing glass laylight (skylight) with frame + mullion grid — the room's
+        // grand light source, on the ceiling underside. Emissive: costs no light.
+        private static void CeilingLaylight(Transform p, float W, float D, float H, Style st)
+        {
+            var l = MuseumKit.Group(p, "Laylight", new Vector3(0, H - 0.06f, 0));
+            float lw = Mathf.Min(W * 0.34f, 5f), ld = Mathf.Min(D * 0.34f, 4f);
+            MuseumKit.Box(l.transform, "Glass", Vector3.zero, new Vector3(lw, 0.05f, ld), "glowWarm");
+            MuseumKit.Box(l.transform, "FrameN", new Vector3(0, 0.04f, ld * 0.5f), new Vector3(lw + 0.3f, 0.14f, 0.16f), "marbleLight");
+            MuseumKit.Box(l.transform, "FrameS", new Vector3(0, 0.04f, -ld * 0.5f), new Vector3(lw + 0.3f, 0.14f, 0.16f), "marbleLight");
+            MuseumKit.Box(l.transform, "FrameE", new Vector3(lw * 0.5f, 0.04f, 0), new Vector3(0.16f, 0.14f, ld + 0.3f), "marbleLight");
+            MuseumKit.Box(l.transform, "FrameW", new Vector3(-lw * 0.5f, 0.04f, 0), new Vector3(0.16f, 0.14f, ld + 0.3f), "marbleLight");
+            for (int i = 1; i < 5; i++)
+                MuseumKit.Box(l.transform, "MullX" + i, new Vector3(Mathf.Lerp(-lw * 0.5f, lw * 0.5f, i / 5f), 0.02f, 0), new Vector3(0.05f, 0.06f, ld), st.Trim);
+            for (int j = 1; j < 4; j++)
+                MuseumKit.Box(l.transform, "MullZ" + j, new Vector3(0, 0.02f, Mathf.Lerp(-ld * 0.5f, ld * 0.5f, j / 4f)), new Vector3(lw, 0.06f, 0.05f), st.Trim);
+        }
+
+        // A three-tier projecting crown cornice running along a wall (Z wall if
+        // isZWall, else an X wall), `coord` being that wall's fixed axis position.
+        private static void CrownCornice(Transform p, bool isZWall, float coord, float length, float H, Style st)
+        {
+            for (int tier = 0; tier < 3; tier++)
+            {
+                float y = H - 0.16f - tier * 0.13f;
+                float proj = 0.12f + tier * 0.07f;
+                float thick = 0.16f - tier * 0.03f;
+                string mat = tier == 1 ? "marbleLight" : st.Trim;
+                Vector3 size = isZWall ? new Vector3(length, thick, proj) : new Vector3(proj, thick, length);
+                Vector3 pos = isZWall ? new Vector3(0, y, coord) : new Vector3(coord, y, 0);
+                MuseumKit.Box(p, "Crown" + tier, pos, size, mat);
+            }
+        }
+
+        // Wainscot / dado panelling along the lower long walls (chair rail + recessed panels).
+        private static void WallDressing(Transform p, float W, float D, float H, Style st)
+        {
+            float hw = W * 0.5f, hd = D * 0.5f;
+            float dadoH = 1.1f, dadoY = dadoH * 0.5f + 0.05f;
+            string panelMat = st.Floor == "concrete" ? "marbleDark" : "woodDark";
+            foreach (float z in new[] { hd - 0.16f, -hd + 0.16f })
+            {
+                MuseumKit.Box(p, "Dado", new Vector3(0, dadoY, z), new Vector3(W - 0.4f, dadoH, 0.05f), panelMat);
+                MuseumKit.Box(p, "ChairRail", new Vector3(0, dadoY + dadoH * 0.5f, z), new Vector3(W - 0.3f, 0.08f, 0.1f), st.Trim);
+                int np = 6;
+                for (int i = 0; i < np; i++)
+                {
+                    float px = Mathf.Lerp(-hw + 1.2f, hw - 1.2f, (i + 0.5f) / np);
+                    MuseumKit.Box(p, "DadoPanel" + i, new Vector3(px, dadoY, z + (z > 0 ? -0.03f : 0.03f)), new Vector3((W - 2.4f) / np - 0.15f, dadoH - 0.25f, 0.02f), st.Wall);
+                }
+            }
+        }
+
+        // A clerestory window band high on the side walls — glowing panes that read
+        // as daylight pouring in above the exhibits (emissive; clears the doorways).
+        private static void Clerestory(Transform p, float W, float D, float H, Style st)
+        {
+            float hw = W * 0.5f, hd = D * 0.5f, wy = H - 1.4f;
+            foreach (float x in new[] { -hw + 0.16f, hw - 0.16f })
+            {
+                float into = x < 0 ? 0.08f : -0.08f;
+                for (int i = 0; i < 3; i++)
+                {
+                    float z = Mathf.Lerp(-hd + 1.9f, hd - 1.9f, i / 2f);
+                    if (Mathf.Abs(z) < 1.7f) continue; // clear the doorway
+                    MuseumKit.Box(p, "Clerestory", new Vector3(x, wy, z), new Vector3(0.1f, 1.1f, 1.3f), st.Sconce);
+                    MuseumKit.Box(p, "ClFrame", new Vector3(x + into, wy, z), new Vector3(0.06f, 1.25f, 1.45f), st.Trim);
+                    MuseumKit.Box(p, "ClMullV", new Vector3(x + into, wy, z), new Vector3(0.05f, 1.1f, 0.05f), st.Trim);
+                    MuseumKit.Box(p, "ClMullH", new Vector3(x + into, wy, z), new Vector3(0.05f, 0.05f, 1.3f), st.Trim);
+                }
+            }
+        }
+
+        // A classical entablature over a colonnade: architrave + a triglyph/metope
+        // frieze + a dentilled cornice. `yaw` turns the detailing toward the room.
+        private static void Entablature(Transform p, Vector3 pos, float length, float yaw, Style st)
+        {
+            var e = MuseumKit.Group(p, "Entablature", pos);
+            e.transform.localEulerAngles = new Vector3(0, yaw, 0);
+            MuseumKit.Box(e.transform, "Architrave", new Vector3(0, 0f, 0), new Vector3(length, 0.22f, 0.5f), "marbleLight");
+            MuseumKit.Box(e.transform, "FriezeBand", new Vector3(0, 0.28f, 0), new Vector3(length, 0.34f, 0.42f), "marbleLight");
+            int units = Mathf.Max(6, Mathf.RoundToInt(length / 1.1f));
+            for (int i = 0; i <= units; i++)
+            {
+                float fx = Mathf.Lerp(-length * 0.5f + 0.4f, length * 0.5f - 0.4f, i / (float)units);
+                MuseumKit.Box(e.transform, "Triglyph" + i, new Vector3(fx, 0.28f, 0.22f), new Vector3(0.13f, 0.32f, 0.04f), st.Trim);
+                if (i < units)
+                {
+                    float mx = Mathf.Lerp(-length * 0.5f + 0.4f, length * 0.5f - 0.4f, (i + 0.5f) / units);
+                    MuseumKit.Box(e.transform, "Metope" + i, new Vector3(mx, 0.28f, 0.22f), new Vector3(length / units * 0.55f, 0.26f, 0.02f), st.Accent);
+                }
+            }
+            MuseumKit.Box(e.transform, "EntCornice", new Vector3(0, 0.54f, 0.06f), new Vector3(length, 0.14f, 0.6f), "marbleLight");
+            int dent = Mathf.Max(12, Mathf.RoundToInt(length / 0.45f));
+            for (int i = 0; i < dent; i++)
+            {
+                float dx = Mathf.Lerp(-length * 0.5f + 0.25f, length * 0.5f - 0.25f, i / (float)(dent - 1));
+                MuseumKit.Box(e.transform, "Dentil" + i, new Vector3(dx, 0.45f, 0.26f), new Vector3(0.07f, 0.08f, 0.1f), st.Trim);
+            }
+        }
+
+        // A grand compass-rose marble inlay set into the floor beneath the hero.
+        private static void FloorInlay(Transform p, Vector3 at, Style st)
+        {
+            var f = MuseumKit.Group(p, "FloorInlay", at);
+            string fieldMat = st.Floor == "marbleDark" ? "marbleLight" : "marbleDark";
+            MuseumKit.Cyl(f.transform, "Ring1", new Vector3(0, 0.000f, 0), 2.5f, 0.012f, st.Trim);
+            MuseumKit.Cyl(f.transform, "Ring2", new Vector3(0, 0.002f, 0), 2.2f, 0.012f, st.Accent);
+            MuseumKit.Cyl(f.transform, "Field", new Vector3(0, 0.004f, 0), 2.0f, 0.012f, fieldMat);
+            MuseumKit.Cyl(f.transform, "Hub", new Vector3(0, 0.006f, 0), 0.9f, 0.012f, st.Accent);
+            for (int i = 0; i < 8; i++)
+            {
+                float a = i * 45f;
+                MuseumKit.Box(f.transform, "Point" + i, new Vector3(Mathf.Cos(a * Mathf.Deg2Rad) * 1.45f, 0.008f, Mathf.Sin(a * Mathf.Deg2Rad) * 1.45f),
+                    new Vector3(0.13f, 0.012f, i % 2 == 0 ? 1.4f : 0.7f), fieldMat, new Vector3(0, -a, 0));
+            }
         }
 
         // ---------------------------------------------------------------- HERO
